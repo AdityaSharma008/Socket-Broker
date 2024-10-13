@@ -1,8 +1,9 @@
+package main.java;
+
 import java.io.*;
 import java.net.*;
-import java.util.Arrays;
 
-public class KafkaBroker {
+public class Broker {
     private static final int PORT = 9092;
 
     public static void main(String[] args) {

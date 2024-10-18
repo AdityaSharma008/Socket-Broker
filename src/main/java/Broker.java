@@ -1,5 +1,3 @@
-//package main.java;
-
 import java.io.*;
 import java.net.*;
 
@@ -17,11 +15,11 @@ public class Broker {
         }
     }
 
-    private static ServerSocket createServerSocket(int port) throws IOException {
+    static ServerSocket createServerSocket(int port) throws IOException {
         return new ServerSocket(port);
     }
 
-    private static void handleIncomingConnection(ServerSocket serverSocket) {
+    static void handleIncomingConnection(ServerSocket serverSocket) {
         try (Socket clientSocket = serverSocket.accept()) {
             System.out.println("Client Connected");
             handleClient(clientSocket);

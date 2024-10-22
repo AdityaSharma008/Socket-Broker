@@ -29,14 +29,14 @@ public class Broker {
         }
     }
 
-    private static void handleClient(Socket client) {
+    //Request format: 4bytes -> messageLength, 4bytes, 4bytes -> correlationId
+    static void handleClient(Socket client) {
         try (DataInputStream in = new DataInputStream(client.getInputStream());
              DataOutputStream out = new DataOutputStream(client.getOutputStream())) {
 
             byte[] inputBytes = readClientMessage(in);
             int correlationID = byteToInt(inputBytes, 4);
 
-            System.out.println("Correlation ID: " + correlationID);
             byte[] response = createMessage(correlationID);
             out.write(response);
 
@@ -56,17 +56,18 @@ public class Broker {
         return inputBytes;
     }
 
-    private static byte[] createMessage(int id) {
+    static byte[] createMessage(int id) {
         byte[] idBytes = intToByteArray(id);
         byte[] lenBytes = intToByteArray(idBytes.length);
 
         byte[] message = new byte[lenBytes.length + idBytes.length];
         System.arraycopy(lenBytes, 0, message, 0, lenBytes.length);
         System.arraycopy(idBytes, 0, message, lenBytes.length, idBytes.length);
+
         return message;
     }
 
-    private static byte[] intToByteArray(int n) {
+    static byte[] intToByteArray(int n) {
         return new byte[]{
                 (byte) (n >> 24),
                 (byte) (n >> 16),

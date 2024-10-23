@@ -37,8 +37,8 @@ public class BrokerTest {
     @Test
     public void testHandleClient() throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
-        byte[] inputData = createTestInput();
+        int correlationID = 12345, apiKey = 0, apiVersion = 0;
+        byte[] inputData = createTestInput(apiKey, apiVersion, correlationID);
         InputStream inputStream = new ByteArrayInputStream(inputData);
 
         when(mockSocket.getInputStream()).thenReturn(inputStream);
@@ -46,24 +46,33 @@ public class BrokerTest {
 
         Broker.handleClient(mockSocket);
 
-        int expectedCorrelationId = 12345;
-        byte[] expectedResponse = Broker.createMessage(expectedCorrelationId);
+        byte[] expectedResponse = Broker.createMessage(correlationID);
 
         byte[] actualResponse = outputStream.toByteArray();
         assertArrayEquals(expectedResponse, actualResponse);
     }
 
-    private byte[] createTestInput() {
-        byte[] correlationIdBytes = Broker.intToByteArray(12345);
-        //todo: change test api bytes to actual api bytes
-        byte[] apiBytes = new byte[]{0, 0, 0, 0};
-        byte[] messageLengthBytes = Broker.intToByteArray(correlationIdBytes.length + apiBytes.length);
+    private byte[] createTestInput(int apiKey, int apiVersion, int correlationID) {
+        byte[] correlationIdBytes = Broker.intToByteArray(correlationID);
+        byte[] apiKeyBytes = intToTwoByteArray(apiKey);
+        byte[] apiVerBytes = intToTwoByteArray(apiVersion);
 
-        byte[] input = new byte[messageLengthBytes.length + correlationIdBytes.length + apiBytes.length];
+        byte[] messageLengthBytes = Broker.intToByteArray(correlationIdBytes.length + apiKeyBytes.length + apiVerBytes.length);
+
+        byte[] input = new byte[messageLengthBytes.length + correlationIdBytes.length + apiKeyBytes.length + apiVerBytes.length];
+
         System.arraycopy(messageLengthBytes, 0, input, 0, messageLengthBytes.length);
-        System.arraycopy(apiBytes, 0, input, messageLengthBytes.length, apiBytes.length);
-        System.arraycopy(correlationIdBytes, 0, input, messageLengthBytes.length + apiBytes.length, correlationIdBytes.length);
+        System.arraycopy(apiKeyBytes, 0, input, messageLengthBytes.length, apiKeyBytes.length);
+        System.arraycopy(apiVerBytes, 0, input, messageLengthBytes.length + apiKeyBytes.length, apiVerBytes.length);
+        System.arraycopy(correlationIdBytes, 0, input, messageLengthBytes.length + apiKeyBytes.length + apiVerBytes.length, correlationIdBytes.length);
 
         return input;
+    }
+
+    private byte[] intToTwoByteArray(int n){
+        return new byte[]{
+                (byte) (n >> 8),
+                (byte) n
+        };
     }
 }

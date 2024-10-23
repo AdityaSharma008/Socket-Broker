@@ -35,9 +35,15 @@ public class Broker {
              DataOutputStream out = new DataOutputStream(client.getOutputStream())) {
 
             byte[] inputBytes = readClientMessage(in);
+            int apiVersion = twoByteIntToInt(inputBytes, 2);
             int correlationID = byteToInt(inputBytes, 4);
 
-            byte[] response = createMessage(correlationID);
+            int errorCode = -1;
+            if (apiVersion < 0 || apiVersion > 4) {
+                errorCode = 35;
+            }
+
+            byte[] response = createMessage(correlationID, errorCode);
             out.write(response);
 
         } catch (IOException e) {
@@ -56,13 +62,20 @@ public class Broker {
         return inputBytes;
     }
 
-    static byte[] createMessage(int id) {
+    static byte[] createMessage(int id, int errorCode) {
         byte[] idBytes = intToByteArray(id);
-        byte[] lenBytes = intToByteArray(idBytes.length);
+        byte[] errorBytes = new byte[0];
 
-        byte[] message = new byte[lenBytes.length + idBytes.length];
+        if (errorCode != -1) {
+            errorBytes = intToTwoByteArray(errorCode);
+        }
+
+        byte[] lenBytes = intToByteArray(idBytes.length + errorBytes.length);
+        byte[] message = new byte[lenBytes.length + idBytes.length + errorBytes.length];
+
         System.arraycopy(lenBytes, 0, message, 0, lenBytes.length);
         System.arraycopy(idBytes, 0, message, lenBytes.length, idBytes.length);
+        System.arraycopy(errorBytes, 0, message, lenBytes.length + idBytes.length, errorBytes.length);
 
         return message;
     }
@@ -76,10 +89,22 @@ public class Broker {
         };
     }
 
+    static byte[] intToTwoByteArray(int n) {
+        return new byte[]{
+                (byte) (n >> 8),
+                (byte) n
+        };
+    }
+
     private static int byteToInt(byte[] arr, int start) {
         return (arr[start] & 0xFF) << 24 |
                 (arr[start + 1] & 0xFF) << 16 |
                 (arr[start + 2] & 0xFF) << 8 |
                 (arr[start + 3] & 0xFF);
+    }
+
+    private static int twoByteIntToInt(byte[] arr, int start) {
+        return ((arr[start] & 0xFF) << 8) |
+                (arr[start + 1] & 0xFF);
     }
 }

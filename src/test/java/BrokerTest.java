@@ -46,7 +46,7 @@ public class BrokerTest {
 
         Broker.handleClient(mockSocket);
 
-        byte[] expectedResponse = Broker.createMessage(correlationID);
+        byte[] expectedResponse = Broker.createMessage(correlationID, -1);
 
         byte[] actualResponse = outputStream.toByteArray();
         assertArrayEquals(expectedResponse, actualResponse);
@@ -65,12 +65,7 @@ public class BrokerTest {
 
         Broker.handleClient(mockSocket);
 
-        byte[] correlationBytes = Broker.createMessage(correlationID);
-        byte[] errorCodeBytes = intToTwoByteArray(35);
-        byte[] expectedResponse = new byte[correlationBytes.length + errorCodeBytes.length];
-
-        System.arraycopy(correlationBytes, 0, expectedResponse, 0, correlationBytes.length);
-        System.arraycopy(errorCodeBytes, 0, expectedResponse, correlationBytes.length, errorCodeBytes.length);
+        byte[] expectedResponse = Broker.createMessage(correlationID, 35);
 
         byte[] actualResponse = outputStream.toByteArray();
         assertArrayEquals(expectedResponse, actualResponse);
@@ -78,8 +73,8 @@ public class BrokerTest {
 
     private byte[] createTestInput(int apiKey, int apiVersion, int correlationID) {
         byte[] correlationIdBytes = Broker.intToByteArray(correlationID);
-        byte[] apiKeyBytes = intToTwoByteArray(apiKey);
-        byte[] apiVerBytes = intToTwoByteArray(apiVersion);
+        byte[] apiKeyBytes = Broker.intToTwoByteArray(apiKey);
+        byte[] apiVerBytes = Broker.intToTwoByteArray(apiVersion);
 
         byte[] messageLengthBytes = Broker.intToByteArray(correlationIdBytes.length + apiKeyBytes.length + apiVerBytes.length);
 
@@ -91,12 +86,5 @@ public class BrokerTest {
         System.arraycopy(correlationIdBytes, 0, input, messageLengthBytes.length + apiKeyBytes.length + apiVerBytes.length, correlationIdBytes.length);
 
         return input;
-    }
-
-    private byte[] intToTwoByteArray(int n){
-        return new byte[]{
-                (byte) (n >> 8),
-                (byte) n
-        };
     }
 }

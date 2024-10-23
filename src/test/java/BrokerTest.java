@@ -33,7 +33,7 @@ public class BrokerTest {
         verify(mockServerSocket).accept();
     }
 
-    //test handle client
+    //test handle client with all correct inputs
     @Test
     public void testHandleClient() throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -47,6 +47,30 @@ public class BrokerTest {
         Broker.handleClient(mockSocket);
 
         byte[] expectedResponse = Broker.createMessage(correlationID);
+
+        byte[] actualResponse = outputStream.toByteArray();
+        assertArrayEquals(expectedResponse, actualResponse);
+    }
+
+
+    @Test
+    public void testWrongAPIVersion() throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        int correlationID = 12345, apiKey = 0, apiVersion = 10;
+        byte[] inputData = createTestInput(apiKey, apiVersion, correlationID);
+        InputStream inputStream = new ByteArrayInputStream(inputData);
+
+        when(mockSocket.getInputStream()).thenReturn(inputStream);
+        when(mockSocket.getOutputStream()).thenReturn(outputStream);
+
+        Broker.handleClient(mockSocket);
+
+        byte[] correlationBytes = Broker.createMessage(correlationID);
+        byte[] errorCodeBytes = intToTwoByteArray(35);
+        byte[] expectedResponse = new byte[correlationBytes.length + errorCodeBytes.length];
+
+        System.arraycopy(correlationBytes, 0, expectedResponse, 0, correlationBytes.length);
+        System.arraycopy(errorCodeBytes, 0, expectedResponse, correlationBytes.length, errorCodeBytes.length);
 
         byte[] actualResponse = outputStream.toByteArray();
         assertArrayEquals(expectedResponse, actualResponse);

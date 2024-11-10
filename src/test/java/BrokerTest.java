@@ -92,6 +92,7 @@ public class BrokerTest {
         System.arraycopy(apiVerBytes, 0, input, messageLengthBytes.length + apiKeyBytes.length, apiVerBytes.length);
         System.arraycopy(correlationIdBytes, 0, input, messageLengthBytes.length + apiKeyBytes.length + apiVerBytes.length, correlationIdBytes.length);
 
+        System.out.println(Arrays.toString(input));
         return input;
     }
 

@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.Arrays;
 
 public class Broker {
     private static final int PORT = 9092;
@@ -37,6 +38,7 @@ public class Broker {
 
             byte[] inputBytes = readClientMessage(in);
 
+            int apiKey = twoByteIntToInt(inputBytes, 0);
             int apiVersion = twoByteIntToInt(inputBytes, 2);  // Assuming apiVersion is at index 2
             int correlationID = byteToInt(inputBytes, 4);     // Assuming correlationId is at index 4
 
@@ -47,7 +49,7 @@ public class Broker {
             }
 
             // Create response message and send to client
-            byte[] response = createMessage(correlationID, errorCode);
+            byte[] response = createMessage(correlationID, errorCode, apiKey);
             out.write(response);
 
         } catch (IOException e) {
@@ -69,41 +71,58 @@ public class Broker {
     }
 
     // Create message that includes correlationId and optional errorCode
-    static byte[] createMessage(int correlationId, int errorCode) {
-        byte[] idBytes = intToByteArray(correlationId);
-        byte[] errorBytes;
+    static byte[] createMessage(int correlationId, int errorCode, int apiKey) {
+        int minVersion = 0, maxVersion = 4;
+        int throttle_time_ms = 0;
+        byte[] tagBuffer = {0x00};
 
-        errorBytes = intToTwoByteArray(errorCode);
+        byte[] idBytes = intToByteArray(correlationId, 4);
+        byte[] errorBytes = intToByteArray(errorCode, 2);
+        byte[] apiBytes = intToByteArray(apiKey, 2);
 
+        byte[] message = concatenate(idBytes, errorBytes, intToByteArray(2, 1), apiBytes,
+                intToByteArray(minVersion, 2), intToByteArray(maxVersion, 2), tagBuffer, intToByteArray(throttle_time_ms, 4), tagBuffer);
 
-        // Calculate total message length (idBytes + errorBytes) and convert to 4-byte array
-        byte[] lenBytes = intToByteArray(idBytes.length + errorBytes.length);
-        byte[] message = new byte[lenBytes.length + idBytes.length + errorBytes.length];
+        System.out.println(Arrays.toString(message));
 
-        // Copy length, id, and errorCode bytes into the final message
-        System.arraycopy(lenBytes, 0, message, 0, lenBytes.length);
-        System.arraycopy(idBytes, 0, message, lenBytes.length, idBytes.length);
-        System.arraycopy(errorBytes, 0, message, lenBytes.length + idBytes.length, errorBytes.length);
-
-        return message;
+        return concatenate(intToByteArray(message.length, 4), message);
     }
 
     // Converts a 32-bit integer to a 4-byte array (big-endian)
-    static byte[] intToByteArray(int n) {
-        return new byte[]{
-                (byte) (n >> 24),
-                (byte) (n >> 16),
-                (byte) (n >> 8),
-                (byte) n
-        };
+    private static byte[] concatenate(byte[]... arrays) {
+        int totalLength = 0;
+        for (byte[] array : arrays) {
+            totalLength += array.length;
+        }
+        byte[] result = new byte[totalLength];
+        int offset = 0;
+        for (byte[] array : arrays) {
+            System.arraycopy(array, 0, result, offset, array.length);
+            offset += array.length;
+        }
+        return result;
     }
 
-    // Converts a 16-bit integer to a 2-byte array (big-endian)
-    static byte[] intToTwoByteArray(int n) {
-        return new byte[]{
-                (byte) (n >> 8),
-                (byte) n
-        };
+    private static byte[] intToByteArray(int n, int numBytes){
+        if(numBytes == 1){
+            return new byte[]{
+                    (byte) n
+            };
+        }
+        else if(numBytes == 2) {
+            return new byte[]{
+                    (byte) (n >> 8),
+                    (byte) n
+            };
+        }
+        else {
+            return new byte[]{
+                    (byte) (n >> 24),
+                    (byte) (n >> 16),
+                    (byte) (n >> 8),
+                    (byte) n
+            };
+        }
     }
 
     // Converts 4 bytes from the array to a 32-bit integer

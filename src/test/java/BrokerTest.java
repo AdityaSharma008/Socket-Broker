@@ -18,6 +18,7 @@ public class BrokerTest {
 
     @Before
     public void setup() throws IOException {
+        correlationID = 12345; apiKey = 0; apiVersion = 2;
         // Mock ServerSocket and Socket objects
         mockServerSocket = Mockito.mock(ServerSocket.class);
         mockSocket = Mockito.mock(Socket.class);
@@ -42,9 +43,6 @@ public class BrokerTest {
     @Test
     public void testHandleClient() throws IOException {
         // Simulate input/output streams for a client connection
-        correlationID = 12345;
-        apiKey = 0;
-        apiVersion = 2;
         byte[] inputData = createTestInput(apiKey, apiVersion, correlationID);
         InputStream inputStream = new ByteArrayInputStream(inputData);
 
@@ -78,6 +76,28 @@ public class BrokerTest {
         byte[] actualResponse = outputStream.toByteArray();
 
         assertArrayEquals(expectedResponse, actualResponse);
+    }
+
+    @Test
+    public void testSequentialRequests() throws IOException{
+        for(int i = 0; i < 3; i++){
+            correlationID += i; apiVersion += 2*i;
+            int errorCode = apiVersion > 4? 35: 0;
+            byte[] inputData = createTestInput(apiKey, apiVersion, correlationID);
+            InputStream inputStream = new ByteArrayInputStream(inputData);
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+            // Setting up streams in the client socket
+            when(mockSocket.getInputStream()).thenReturn(inputStream);
+            when(mockSocket.getOutputStream()).thenReturn(outputStream);
+
+            Broker.handleClient(mockSocket);
+
+            byte[] expectedResponse = createMessage(correlationID, errorCode, apiKey);
+            byte[] actualResponse = outputStream.toByteArray();
+
+            assertArrayEquals(expectedResponse, actualResponse);
+        }
     }
 
     // Helper method to create a mock client message

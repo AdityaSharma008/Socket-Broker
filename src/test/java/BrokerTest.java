@@ -48,7 +48,7 @@ public class BrokerTest {
         Broker.handleClient(mockSocket);
 
         // Expectation: no error, so errorCode should be -1
-        byte[] expectedResponse = Broker.createMessage(correlationID, -1);
+        byte[] expectedResponse = Broker.createMessage(correlationID, 0);
         byte[] actualResponse = outputStream.toByteArray();
 
         assertArrayEquals(expectedResponse, actualResponse);

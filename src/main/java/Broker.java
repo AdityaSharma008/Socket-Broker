@@ -41,7 +41,7 @@ public class Broker {
             int correlationID = byteToInt(inputBytes, 4);     // Assuming correlationId is at index 4
 
             // Determine error code based on apiVersion
-            int errorCode = -1;
+            int errorCode = 0;
             if (apiVersion < 0 || apiVersion > 4) {
                 errorCode = 35;  // Set error code if apiVersion is invalid
             }
@@ -73,9 +73,8 @@ public class Broker {
         byte[] idBytes = intToByteArray(correlationId);
         byte[] errorBytes = new byte[0];  // Default empty errorBytes
 
-        if (errorCode != -1) {
-            errorBytes = intToTwoByteArray(errorCode);
-        }
+        errorBytes = intToTwoByteArray(errorCode);
+
 
         // Calculate total message length (idBytes + errorBytes) and convert to 4-byte array
         byte[] lenBytes = intToByteArray(idBytes.length + errorBytes.length);

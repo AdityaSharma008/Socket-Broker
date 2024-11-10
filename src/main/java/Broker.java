@@ -71,7 +71,7 @@ public class Broker {
     // Create message that includes correlationId and optional errorCode
     static byte[] createMessage(int correlationId, int errorCode) {
         byte[] idBytes = intToByteArray(correlationId);
-        byte[] errorBytes = new byte[0];  // Default empty errorBytes
+        byte[] errorBytes;
 
         errorBytes = intToTwoByteArray(errorCode);
 

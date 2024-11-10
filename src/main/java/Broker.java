@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class Broker {
@@ -38,9 +39,9 @@ public class Broker {
 
             byte[] inputBytes = readClientMessage(in);
 
-            int apiKey = twoByteIntToInt(inputBytes, 0);
-            int apiVersion = twoByteIntToInt(inputBytes, 2);  // Assuming apiVersion is at index 2
-            int correlationID = byteToInt(inputBytes, 4);     // Assuming correlationId is at index 4
+            int apiKey = byteToInt(inputBytes, 0, 2);
+            int apiVersion = byteToInt(inputBytes, 2, 2);  // Assuming apiVersion is at index 2
+            int correlationID = byteToInt(inputBytes, 4, 4);     // Assuming correlationId is at index 4
 
             // Determine error code based on apiVersion
             int errorCode = 0;
@@ -63,7 +64,7 @@ public class Broker {
         byte[] messageLengthBytes = new byte[4];  // First 4 bytes are the message length
 
         in.readFully(messageLengthBytes);
-        int messageLength = byteToInt(messageLengthBytes, 0);
+        int messageLength = byteToInt(messageLengthBytes, 0, 4);
 
         byte[] inputBytes = new byte[messageLength];  // Array for msg
         in.readFully(inputBytes);
@@ -83,8 +84,6 @@ public class Broker {
         byte[] message = concatenate(idBytes, errorBytes, intToByteArray(2, 1), apiBytes,
                 intToByteArray(minVersion, 2), intToByteArray(maxVersion, 2), tagBuffer, intToByteArray(throttle_time_ms, 4), tagBuffer);
 
-        System.out.println(Arrays.toString(message));
-
         return concatenate(intToByteArray(message.length, 4), message);
     }
 
@@ -103,39 +102,27 @@ public class Broker {
         return result;
     }
 
-    private static byte[] intToByteArray(int n, int numBytes){
-        if(numBytes == 1){
-            return new byte[]{
-                    (byte) n
-            };
+    private static byte[] intToByteArray(int value, int size) {
+        if (size < 1 || size > 4) {
+            throw new IllegalArgumentException("Size must be between 1 and 4 bytes for an int.");
         }
-        else if(numBytes == 2) {
-            return new byte[]{
-                    (byte) (n >> 8),
-                    (byte) n
-            };
-        }
-        else {
-            return new byte[]{
-                    (byte) (n >> 24),
-                    (byte) (n >> 16),
-                    (byte) (n >> 8),
-                    (byte) n
-            };
-        }
+        ByteBuffer buffer = ByteBuffer.allocate(4);
+        buffer.putInt(value);
+
+        byte[] fullArray = buffer.array();
+        byte[] result = new byte[size];
+
+        System.arraycopy(fullArray, 4 - size, result, 0, size);
+
+        return result;
     }
 
     // Converts 4 bytes from the array to a 32-bit integer
-    private static int byteToInt(byte[] arr, int start) {
-        return (arr[start] & 0xFF) << 24 |
-                (arr[start + 1] & 0xFF) << 16 |
-                (arr[start + 2] & 0xFF) << 8 |
-                (arr[start + 3] & 0xFF);
-    }
-
-    // Converts 2 bytes from the array to a 16-bit integer
-    private static int twoByteIntToInt(byte[] arr, int start) {
-        return ((arr[start] & 0xFF) << 8) |
-                (arr[start + 1] & 0xFF);
+    private static int byteToInt(byte[] arr, int start, int byteCount) {
+        int result = 0;
+        for (int i = 0; i < byteCount; i++) {
+            result |= (arr[start + i] & 0xFF) << ((byteCount - i - 1) * 8);
+        }
+        return result;
     }
 }

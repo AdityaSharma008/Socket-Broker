@@ -1,6 +1,6 @@
 import java.io.*;
 import java.net.*;
-import java.util.Arrays;
+import java.nio.ByteBuffer;
 
 import org.junit.*;
 import org.mockito.*;
@@ -13,12 +13,17 @@ import static org.mockito.Mockito.*;
 public class BrokerTest {
     ServerSocket mockServerSocket;
     Socket mockSocket;
+    ByteArrayOutputStream outputStream;
+    int correlationID, apiKey, apiVersion;
 
     @Before
     public void setup() throws IOException {
         // Mock ServerSocket and Socket objects
         mockServerSocket = Mockito.mock(ServerSocket.class);
         mockSocket = Mockito.mock(Socket.class);
+
+        outputStream = new ByteArrayOutputStream();
+        when(mockSocket.getOutputStream()).thenReturn(outputStream);
 
         when(mockServerSocket.accept()).thenReturn(mockSocket);
     }
@@ -37,14 +42,14 @@ public class BrokerTest {
     @Test
     public void testHandleClient() throws IOException {
         // Simulate input/output streams for a client connection
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        int correlationID = 12345, apiKey = 0, apiVersion = 0;
+        correlationID = 12345;
+        apiKey = 0;
+        apiVersion = 2;
         byte[] inputData = createTestInput(apiKey, apiVersion, correlationID);
         InputStream inputStream = new ByteArrayInputStream(inputData);
 
-        // Setting up mocked streams in the client socket
+        // Setting up streams in the client socket
         when(mockSocket.getInputStream()).thenReturn(inputStream);
-        when(mockSocket.getOutputStream()).thenReturn(outputStream);
 
         Broker.handleClient(mockSocket);
 
@@ -58,13 +63,13 @@ public class BrokerTest {
     @Test
     public void testWrongAPIVersion() throws IOException {
         // Test scenario where API version is invalid
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        int correlationID = 12345, apiKey = 0, apiVersion = 10; // Invalid API version
+        correlationID = 12345;
+        apiKey = 0;
+        apiVersion = 10; // Invalid API version
         byte[] inputData = createTestInput(apiKey, apiVersion, correlationID);
         InputStream inputStream = new ByteArrayInputStream(inputData);
 
         when(mockSocket.getInputStream()).thenReturn(inputStream);
-        when(mockSocket.getOutputStream()).thenReturn(outputStream);
 
         Broker.handleClient(mockSocket);
 
@@ -84,16 +89,8 @@ public class BrokerTest {
 
         // Calculate message length and construct final input byte array
         byte[] messageLengthBytes = intToByteArray(correlationIdBytes.length + apiKeyBytes.length + apiVerBytes.length, 4);
-        byte[] input = new byte[messageLengthBytes.length + correlationIdBytes.length + apiKeyBytes.length + apiVerBytes.length];
 
-        // Copying bytes to input array
-        System.arraycopy(messageLengthBytes, 0, input, 0, messageLengthBytes.length);
-        System.arraycopy(apiKeyBytes, 0, input, messageLengthBytes.length, apiKeyBytes.length);
-        System.arraycopy(apiVerBytes, 0, input, messageLengthBytes.length + apiKeyBytes.length, apiVerBytes.length);
-        System.arraycopy(correlationIdBytes, 0, input, messageLengthBytes.length + apiKeyBytes.length + apiVerBytes.length, correlationIdBytes.length);
-
-        System.out.println(Arrays.toString(input));
-        return input;
+        return concatenate(messageLengthBytes, apiKeyBytes, apiVerBytes, correlationIdBytes);
     }
 
     //correlationid(4) + errorcode(2) + 2(1) + apikey(2) + minVersion(2) + maxversion(2) + tag_buffer + throttle(4) + tag_buffer
@@ -108,8 +105,6 @@ public class BrokerTest {
 
         byte[] message = concatenate(idBytes, errorBytes, intToByteArray(2, 1), apiBytes,
                 intToByteArray(minVersion, 2), intToByteArray(maxVersion, 2), tagBuffer, intToByteArray(throttle_time_ms, 4), tagBuffer);
-
-        System.out.println(Arrays.toString(message));
 
         return concatenate(intToByteArray(message.length, 4), message);
     }
@@ -128,25 +123,18 @@ public class BrokerTest {
         return result;
     }
 
-    private byte[] intToByteArray(int n, int numBytes){
-        if(numBytes == 1){
-            return new byte[]{
-                    (byte) n
-            };
+    private byte[] intToByteArray(int value, int size) {
+        if (size < 1 || size > 4) {
+            throw new IllegalArgumentException("Size must be between 1 and 4 bytes for an int.");
         }
-        else if(numBytes == 2) {
-            return new byte[]{
-                    (byte) (n >> 8),
-                    (byte) n
-            };
-        }
-        else {
-            return new byte[]{
-                    (byte) (n >> 24),
-                    (byte) (n >> 16),
-                    (byte) (n >> 8),
-                    (byte) n
-            };
-        }
+        ByteBuffer buffer = ByteBuffer.allocate(4);
+        buffer.putInt(value);
+
+        byte[] fullArray = buffer.array();
+        byte[] result = new byte[size];
+
+        System.arraycopy(fullArray, 4 - size, result, 0, size);
+
+        return result;
     }
 }

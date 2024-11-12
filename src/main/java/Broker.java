@@ -31,7 +31,7 @@ public class Broker {
     }
 
     // Handles a client request by reading the message, processing it, and responding
-    private static class ClientHandler implements Runnable{
+    protected static class ClientHandler implements Runnable{
         private final Socket clientSocket;
 
         public ClientHandler(Socket socket){

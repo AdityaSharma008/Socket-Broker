@@ -13,6 +13,7 @@ import static org.mockito.Mockito.*;
 public class BrokerTest {
     ServerSocket mockServerSocket;
     Socket mockSocket;
+    Broker.ClientHandler clientHandler;
     ByteArrayOutputStream outputStream;
     int correlationID, apiKey, apiVersion;
 
@@ -22,7 +23,7 @@ public class BrokerTest {
         // Mock ServerSocket and Socket objects
         mockServerSocket = Mockito.mock(ServerSocket.class);
         mockSocket = Mockito.mock(Socket.class);
-
+        clientHandler = new Broker.ClientHandler(mockSocket);
         outputStream = new ByteArrayOutputStream();
         when(mockSocket.getOutputStream()).thenReturn(outputStream);
 
@@ -48,8 +49,7 @@ public class BrokerTest {
 
         // Setting up streams in the client socket
         when(mockSocket.getInputStream()).thenReturn(inputStream);
-
-        Broker.handleClient(mockSocket);
+        clientHandler.run();
 
         // Expectation: no error, so errorCode should be 0
         byte[] expectedResponse = createMessage(correlationID, 0, apiKey);
@@ -69,7 +69,7 @@ public class BrokerTest {
 
         when(mockSocket.getInputStream()).thenReturn(inputStream);
 
-        Broker.handleClient(mockSocket);
+        clientHandler.run();
 
         // Expectation: invalid API version, so errorCode should be 35
         byte[] expectedResponse = createMessage(correlationID, 35, apiKey);
@@ -91,7 +91,8 @@ public class BrokerTest {
             when(mockSocket.getInputStream()).thenReturn(inputStream);
             when(mockSocket.getOutputStream()).thenReturn(outputStream);
 
-            Broker.handleClient(mockSocket);
+            Broker.ClientHandler clientHandler = new Broker.ClientHandler(mockSocket);
+            clientHandler.run();
 
             byte[] expectedResponse = createMessage(correlationID, errorCode, apiKey);
             byte[] actualResponse = outputStream.toByteArray();

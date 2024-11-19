@@ -2,11 +2,12 @@ import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 
-import org.junit.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.*;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.*;
 
 
@@ -17,7 +18,7 @@ public class BrokerTest {
     ByteArrayOutputStream outputStream;
     int correlationID, apiKey, apiVersion;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         correlationID = 12345; apiKey = 0; apiVersion = 2;
         // Mock ServerSocket and Socket objects

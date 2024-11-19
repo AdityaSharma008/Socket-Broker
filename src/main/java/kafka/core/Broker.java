@@ -1,8 +1,12 @@
 package kafka.core;
 
-import java.io.*;
-import java.net.*;
-import java.nio.ByteBuffer;
+import kafka.utils.ByteUtils;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class Broker {
     private static final int PORT = 9092;
@@ -50,9 +54,9 @@ public class Broker {
 
                 byte[] inputBytes = readClientMessage(in);
 
-                int apiKey = byteToInt(inputBytes, 0, 2);
-                int apiVersion = byteToInt(inputBytes, 2, 2);  // Assuming apiVersion is at index 2
-                int correlationID = byteToInt(inputBytes, 4, 4);     // Assuming correlationId is at index 4
+                int apiKey = ByteUtils.byteToInt(inputBytes, 0, 2);
+                int apiVersion = ByteUtils.byteToInt(inputBytes, 2, 2);  // Assuming apiVersion is at index 2
+                int correlationID = ByteUtils.byteToInt(inputBytes, 4, 4);     // Assuming correlationId is at index 4
 
                 // Determine error code based on apiVersion
                 int errorCode = 0;
@@ -75,7 +79,7 @@ public class Broker {
             byte[] messageLengthBytes = new byte[4];  // First 4 bytes are the message length
 
             in.readFully(messageLengthBytes);
-            int messageLength = byteToInt(messageLengthBytes, 0, 4);
+            int messageLength = ByteUtils.byteToInt(messageLengthBytes, 0, 4);
 
             byte[] inputBytes = new byte[messageLength];  // Array for msg
             in.readFully(inputBytes);
@@ -88,53 +92,14 @@ public class Broker {
             int throttle_time_ms = 0;
             byte[] tagBuffer = {0x00};
 
-            byte[] idBytes = intToByteArray(correlationId, 4);
-            byte[] errorBytes = intToByteArray(errorCode, 2);
-            byte[] apiBytes = intToByteArray(apiKey, 2);
+            byte[] idBytes = ByteUtils.intToByteArray(correlationId, 4);
+            byte[] errorBytes = ByteUtils.intToByteArray(errorCode, 2);
+            byte[] apiBytes = ByteUtils.intToByteArray(apiKey, 2);
 
-            byte[] message = concatenate(idBytes, errorBytes, intToByteArray(2, 1), apiBytes,
-                    intToByteArray(minVersion, 2), intToByteArray(maxVersion, 2), tagBuffer, intToByteArray(throttle_time_ms, 4), tagBuffer);
+            byte[] message = ByteUtils.concatenate(idBytes, errorBytes, ByteUtils.intToByteArray(2, 1), apiBytes,
+                    ByteUtils.intToByteArray(minVersion, 2), ByteUtils.intToByteArray(maxVersion, 2), tagBuffer, ByteUtils.intToByteArray(throttle_time_ms, 4), tagBuffer);
 
-            return concatenate(intToByteArray(message.length, 4), message);
-        }
-
-        // Converts a 32-bit integer to a 4-byte array (big-endian)
-        private byte[] concatenate(byte[]... arrays) {
-            int totalLength = 0;
-            for (byte[] array : arrays) {
-                totalLength += array.length;
-            }
-            byte[] result = new byte[totalLength];
-            int offset = 0;
-            for (byte[] array : arrays) {
-                System.arraycopy(array, 0, result, offset, array.length);
-                offset += array.length;
-            }
-            return result;
-        }
-
-        private byte[] intToByteArray(int value, int size) {
-            if (size < 1 || size > 4) {
-                throw new IllegalArgumentException("Size must be between 1 and 4 bytes for an int.");
-            }
-            ByteBuffer buffer = ByteBuffer.allocate(4);
-            buffer.putInt(value);
-
-            byte[] fullArray = buffer.array();
-            byte[] result = new byte[size];
-
-            System.arraycopy(fullArray, 4 - size, result, 0, size);
-
-            return result;
-        }
-
-        // Converts 4 bytes from the array to a 32-bit integer
-        private int byteToInt(byte[] arr, int start, int byteCount) {
-            int result = 0;
-            for (int i = 0; i < byteCount; i++) {
-                result |= (arr[start + i] & 0xFF) << ((byteCount - i - 1) * 8);
-            }
-            return result;
+            return ByteUtils.concatenate(ByteUtils.intToByteArray(message.length, 4), message);
         }
     }
 }

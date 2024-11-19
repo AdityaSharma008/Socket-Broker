@@ -1,6 +1,7 @@
 package kafka.core;
 
 import kafka.utils.ByteUtils;
+import kafka.protocols.Request;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -52,11 +53,11 @@ public class Broker {
             try (DataInputStream in = new DataInputStream(client.getInputStream());
                  DataOutputStream out = new DataOutputStream(client.getOutputStream())) {
 
-                byte[] inputBytes = readClientMessage(in);
+                Request request = Request.readFrom(clientSocket);
 
-                int apiKey = ByteUtils.byteToInt(inputBytes, 0, 2);
-                int apiVersion = ByteUtils.byteToInt(inputBytes, 2, 2);  // Assuming apiVersion is at index 2
-                int correlationID = ByteUtils.byteToInt(inputBytes, 4, 4);     // Assuming correlationId is at index 4
+                int apiKey = request.getApiKey();
+                int apiVersion = request.getApiVersion();  // Assuming apiVersion is at index 2
+                int correlationID = request.getCorrelationID();     // Assuming correlationId is at index 4
 
                 // Determine error code based on apiVersion
                 int errorCode = 0;
@@ -72,18 +73,6 @@ public class Broker {
                 System.err.println("Error in communication with client: " + e.getMessage());
                 e.printStackTrace();
             }
-        }
-
-        // Reads the client's message length and the message content
-        private byte[] readClientMessage(DataInputStream in) throws IOException {
-            byte[] messageLengthBytes = new byte[4];  // First 4 bytes are the message length
-
-            in.readFully(messageLengthBytes);
-            int messageLength = ByteUtils.byteToInt(messageLengthBytes, 0, 4);
-
-            byte[] inputBytes = new byte[messageLength];  // Array for msg
-            in.readFully(inputBytes);
-            return inputBytes;
         }
 
         // Create message that includes correlationId and optional errorCode

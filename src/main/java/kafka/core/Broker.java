@@ -1,3 +1,5 @@
+package kafka.core;
+
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
@@ -26,12 +28,12 @@ public class Broker {
     }
 
     // Create a server socket bound to the given port
-    static ServerSocket createServerSocket(int port) throws IOException {
+    public static ServerSocket createServerSocket(int port) throws IOException {
         return new ServerSocket(port);
     }
 
     // Handles a client request by reading the message, processing it, and responding
-    protected static class ClientHandler implements Runnable{
+    public static class ClientHandler implements Runnable{
         private final Socket clientSocket;
 
         public ClientHandler(Socket socket){

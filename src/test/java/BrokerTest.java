@@ -2,6 +2,7 @@ import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 
+import kafka.core.Broker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;

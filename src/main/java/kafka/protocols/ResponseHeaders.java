@@ -2,26 +2,28 @@ package kafka.protocols;
 
 import kafka.utils.ByteUtils;
 
-public class ResponseHeaders {
-    class ResponseHeaderV0{
-        int correlationID;
-        ResponseHeaderV0(int correlationID){
-            this.correlationID = correlationID;
-        }
+interface ResponseHeaders {
+    byte[] toBytes();
+}
 
-        public byte[] toBytes(){
-            return ByteUtils.intToByteArray(this.correlationID, 4);
-        }
+class ResponseHeaderV0 implements ResponseHeaders{
+    int correlationID;
+    ResponseHeaderV0(int correlationID){
+        this.correlationID = correlationID;
     }
 
-    class ResponseHeaderV1{
-        int correlationID;
-        ResponseHeaderV1(int correlationID){
-            this.correlationID = correlationID;
-        }
+    public byte[] toBytes(){
+        return ByteUtils.intToByteArray(this.correlationID, 4);
+    }
+}
 
-        public byte[] toBytes(){
-            return ByteUtils.concatenate(ByteUtils.intToByteArray(this.correlationID, 4), new byte[]{0x00});
-        }
+class ResponseHeaderV1 implements ResponseHeaders{
+    int correlationID;
+    ResponseHeaderV1(int correlationID){
+        this.correlationID = correlationID;
+    }
+
+    public byte[] toBytes(){
+        return ByteUtils.concatenate(ByteUtils.intToByteArray(this.correlationID, 4), new byte[]{0x00});
     }
 }

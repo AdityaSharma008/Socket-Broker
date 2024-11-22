@@ -1,21 +1,24 @@
 package kafka.utils;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class ByteUtils {
 
-    public static byte[] concatenate(byte[]... arrays) {
-        int totalLength = 0;
-        for (byte[] array : arrays) {
-            totalLength += array.length;
+    public static byte[] concatenate(byte[]... arrays)  {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        for (byte[] field : arrays) {
+            try {
+                baos.write(field);
+            }
+            catch (IOException e){
+                e.printStackTrace();
+            }
         }
-        byte[] result = new byte[totalLength];
-        int offset = 0;
-        for (byte[] array : arrays) {
-            System.arraycopy(array, 0, result, offset, array.length);
-            offset += array.length;
-        }
-        return result;
+
+        return baos.toByteArray();
     }
 
     // Converts a 32-bit integer to a 4-byte array (big-endian)

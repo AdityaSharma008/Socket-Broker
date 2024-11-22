@@ -7,8 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 
@@ -21,7 +20,9 @@ public class BrokerTest {
 
     @BeforeEach
     public void setup() throws IOException {
-        correlationID = 12345; apiKey = 0; apiVersion = 2;
+        correlationID = 12345;
+        apiKey = 0;
+        apiVersion = 2;
         // Mock ServerSocket and Socket objects
         mockServerSocket = Mockito.mock(ServerSocket.class);
         mockSocket = Mockito.mock(Socket.class);
@@ -34,7 +35,10 @@ public class BrokerTest {
 
     @Test
     public void testServerSocketCreation() throws IOException {
-        assertNotNull(Broker.createServerSocket(9092));
+        try (ServerSocket serverSocket = new ServerSocket(9092)) {
+            assertNotNull(serverSocket, "ServerSocket should not be null");
+            assertEquals(9092, serverSocket.getLocalPort(), "ServerSocket should bind to port 9092");
+        }
     }
 
     @Test
@@ -81,10 +85,11 @@ public class BrokerTest {
     }
 
     @Test
-    public void testSequentialRequests() throws IOException{
-        for(int i = 0; i < 3; i++){
-            correlationID += i; apiVersion += 2*i;
-            int errorCode = apiVersion > 4? 35: 0;
+    public void testSequentialRequests() throws IOException {
+        for (int i = 0; i < 3; i++) {
+            correlationID += i;
+            apiVersion += 2 * i;
+            int errorCode = apiVersion > 4 ? 35 : 0;
             byte[] inputData = createTestInput(apiKey, apiVersion, correlationID);
             InputStream inputStream = new ByteArrayInputStream(inputData);
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

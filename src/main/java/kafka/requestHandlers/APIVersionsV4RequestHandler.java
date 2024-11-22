@@ -10,19 +10,19 @@ public class APIVersionsV4RequestHandler {
     Request request;
     final int minVersion, maxVersion;
     int errorCode;
-    public APIVersionsV4RequestHandler(Request request){
+
+    public APIVersionsV4RequestHandler(Request request) {
         this.request = request;
         this.minVersion = 0;
         this.maxVersion = 4;
-        if(request.getApiVersion() > this.maxVersion || request.getApiVersion() < this.minVersion){
+        if (request.getApiVersion() > this.maxVersion || request.getApiVersion() < this.minVersion) {
             this.errorCode = 35;
-        }
-        else{
+        } else {
             this.errorCode = 0;
         }
     }
 
-    public Message handle(){
+    public Message handle() {
         ResponseHeaders header = new ResponseHeaders.ResponseHeaderV0(request.getCorrelationID());
         Message message = new Message(header);
 

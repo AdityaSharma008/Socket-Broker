@@ -11,14 +11,14 @@ public class Request {
     private final int apiVersion;
     private final int correlationID;
 
-    Request(int apiKey, int apiVersion, int correlationID){
+    Request(int apiKey, int apiVersion, int correlationID) {
         this.apiKey = apiKey;
         this.apiVersion = apiVersion;
         this.correlationID = correlationID;
     }
 
-    public static Request readFrom(Socket clientSocket){
-        try{
+    public static Request readFrom(Socket clientSocket) {
+        try {
             DataInputStream in = new DataInputStream(clientSocket.getInputStream());
 
             byte[] inputBytes = readClientMessage(in);
@@ -28,8 +28,7 @@ public class Request {
             int correlationID = ByteUtils.byteToInt(inputBytes, 4, 4);     // Assuming correlationId is at index 4
 
             return new Request(apiKey, apiVersion, correlationID);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             System.err.println("Error in communication with client: " + e.getMessage());
             e.printStackTrace();
 
@@ -37,7 +36,7 @@ public class Request {
         }
     }
 
-    private static byte[] readClientMessage(DataInputStream in) throws IOException{
+    private static byte[] readClientMessage(DataInputStream in) throws IOException {
         byte[] messageLengthBytes = new byte[4];  // First 4 bytes are the message length
 
         in.readFully(messageLengthBytes);

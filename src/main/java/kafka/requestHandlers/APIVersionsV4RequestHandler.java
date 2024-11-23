@@ -15,7 +15,7 @@ public class APIVersionsV4RequestHandler {
         this.minVersion = 0;
         this.maxVersion = 4;
         this.throttleTime = 0;
-        this.errorCode = (request.getApiVersion() > this.maxVersion || request.getApiVersion() < this.minVersion)? (short)35: 0;
+        this.errorCode = (request.getApiVersion() > this.maxVersion || request.getApiVersion() < this.minVersion) ? (short) 35 : 0;
     }
 
     public Message handle() {

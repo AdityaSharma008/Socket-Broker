@@ -6,14 +6,13 @@ import java.nio.ByteBuffer;
 
 public class ByteUtils {
 
-    public static byte[] concatenate(byte[]... arrays)  {
+    public static byte[] concatenate(byte[]... arrays) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         for (byte[] field : arrays) {
             try {
                 baos.write(field);
-            }
-            catch (IOException e){
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }

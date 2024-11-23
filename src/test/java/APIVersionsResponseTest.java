@@ -1,8 +1,11 @@
 import java.io.*;
 import java.net.*;
-import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Map;
 
 import kafka.core.Broker;
+import kafka.protocols.APIVersions;
+import kafka.utils.ByteUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
@@ -11,17 +14,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 
-public class BrokerTest {
+public class APIVersionsResponseTest {
     ServerSocket mockServerSocket;
     Socket mockSocket;
     Broker.ClientHandler clientHandler;
     ByteArrayOutputStream outputStream;
+    Helper helper = new Helper();
     int correlationID, apiKey, apiVersion;
 
     @BeforeEach
     public void setup() throws IOException {
         correlationID = 12345;
-        apiKey = 0;
+        apiKey = 18;
         apiVersion = 2;
         // Mock ServerSocket and Socket objects
         mockServerSocket = Mockito.mock(ServerSocket.class);
@@ -50,7 +54,7 @@ public class BrokerTest {
     @Test
     public void testHandleClient() throws IOException {
         // Simulate input/output streams for a client connection
-        byte[] inputData = createTestInput(apiKey, apiVersion, correlationID);
+        byte[] inputData = helper.createTestInput(apiKey, apiVersion, correlationID);
         InputStream inputStream = new ByteArrayInputStream(inputData);
 
         // Setting up streams in the client socket
@@ -58,7 +62,7 @@ public class BrokerTest {
         clientHandler.run();
 
         // Expectation: no error, so errorCode should be 0
-        byte[] expectedResponse = createMessage(correlationID, 0, apiKey);
+        byte[] expectedResponse = createMessage(correlationID, 0);
         byte[] actualResponse = outputStream.toByteArray();
 
         assertArrayEquals(expectedResponse, actualResponse);
@@ -68,9 +72,9 @@ public class BrokerTest {
     public void testWrongAPIVersion() throws IOException {
         // Test scenario where API version is invalid
         correlationID = 12345;
-        apiKey = 0;
+        apiKey = 18;
         apiVersion = 10; // Invalid API version
-        byte[] inputData = createTestInput(apiKey, apiVersion, correlationID);
+        byte[] inputData = helper.createTestInput(apiKey, apiVersion, correlationID);
         InputStream inputStream = new ByteArrayInputStream(inputData);
 
         when(mockSocket.getInputStream()).thenReturn(inputStream);
@@ -78,8 +82,11 @@ public class BrokerTest {
         clientHandler.run();
 
         // Expectation: invalid API version, so errorCode should be 35
-        byte[] expectedResponse = createMessage(correlationID, 35, apiKey);
+        byte[] expectedResponse = createMessage(correlationID, 35);
         byte[] actualResponse = outputStream.toByteArray();
+
+        System.out.println(Arrays.toString(expectedResponse));
+        System.out.println(Arrays.toString(actualResponse));
 
         assertArrayEquals(expectedResponse, actualResponse);
     }
@@ -90,7 +97,7 @@ public class BrokerTest {
             correlationID += i;
             apiVersion += 2 * i;
             int errorCode = apiVersion > 4 ? 35 : 0;
-            byte[] inputData = createTestInput(apiKey, apiVersion, correlationID);
+            byte[] inputData = helper.createTestInput(apiKey, apiVersion, correlationID);
             InputStream inputStream = new ByteArrayInputStream(inputData);
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
@@ -101,68 +108,41 @@ public class BrokerTest {
             Broker.ClientHandler clientHandler = new Broker.ClientHandler(mockSocket);
             clientHandler.run();
 
-            byte[] expectedResponse = createMessage(correlationID, errorCode, apiKey);
+            byte[] expectedResponse = createMessage(correlationID, errorCode);
             byte[] actualResponse = outputStream.toByteArray();
 
             assertArrayEquals(expectedResponse, actualResponse);
         }
     }
 
-    // Helper method to create a mock client message
-    private byte[] createTestInput(int apiKey, int apiVersion, int correlationID) {
-        // Convert various fields to byte arrays
-        byte[] correlationIdBytes = intToByteArray(correlationID, 4);
-        byte[] apiKeyBytes = intToByteArray(apiKey, 2);
-        byte[] apiVerBytes = intToByteArray(apiVersion, 2);
-
-        // Calculate message length and construct final input byte array
-        byte[] messageLengthBytes = intToByteArray(correlationIdBytes.length + apiKeyBytes.length + apiVerBytes.length, 4);
-
-        return concatenate(messageLengthBytes, apiKeyBytes, apiVerBytes, correlationIdBytes);
-    }
-
-    //correlationid(4) + errorcode(2) + 2(1) + apikey(2) + minVersion(2) + maxversion(2) + tag_buffer + throttle(4) + tag_buffer
-    byte[] createMessage(int correlationId, int errorCode, int apiKey) {
-        int minVersion = 0, maxVersion = 4;
+    //correlationid(4) + errorcode(2) + numOfFieldsAfter(1) + Available APIs(apikey(2) + minVersion(2) + maxversion(2) + tag_buffer) + throttle(4) + tag_buffer
+    byte[] createMessage(int correlationId, int errorCode) {
         int throttle_time_ms = 0;
         byte[] tagBuffer = {0x00};
 
-        byte[] idBytes = intToByteArray(correlationId, 4);
-        byte[] errorBytes = intToByteArray(errorCode, 2);
-        byte[] apiBytes = intToByteArray(apiKey, 2);
+        Map<Integer, APIVersions> apiVersionsMap = helper.getAPIVersionsMap();
+        int numOfApis = apiVersionsMap.size();
 
-        byte[] message = concatenate(idBytes, errorBytes, intToByteArray(2, 1), apiBytes,
-                intToByteArray(minVersion, 2), intToByteArray(maxVersion, 2), tagBuffer, intToByteArray(throttle_time_ms, 4), tagBuffer);
+        byte[] idBytes = ByteUtils.intToByteArray(correlationId, 4);
+        byte[] errorBytes = ByteUtils.intToByteArray(errorCode, 2);
+        byte[] apiBytes = apiBytesHelper(apiVersionsMap);
 
-        return concatenate(intToByteArray(message.length, 4), message);
+        byte[] message = ByteUtils.concatenate(idBytes, errorBytes, ByteUtils.intToByteArray(numOfApis + 1, 1), apiBytes,
+                ByteUtils.intToByteArray(throttle_time_ms, 4), tagBuffer);
+
+        return ByteUtils.concatenate(ByteUtils.intToByteArray(message.length, 4), message);
     }
 
-    private byte[] concatenate(byte[]... arrays) {
-        int totalLength = 0;
-        for (byte[] array : arrays) {
-            totalLength += array.length;
+    private byte[] apiBytesHelper(Map<Integer, APIVersions> apiVersionsMap){
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        for (APIVersions apiVersions : apiVersionsMap.values()) {
+            baos.write(ByteUtils.intToByteArray(apiVersions.getApiKey(), 2), 0, 2);
+            baos.write(ByteUtils.intToByteArray(apiVersions.getMinVersion(), 2), 0, 2);
+            baos.write(ByteUtils.intToByteArray(apiVersions.getMaxVersion(), 2), 0, 2);
+            baos.write(new byte[]{0x00}, 0, 1);
         }
-        byte[] result = new byte[totalLength];
-        int offset = 0;
-        for (byte[] array : arrays) {
-            System.arraycopy(array, 0, result, offset, array.length);
-            offset += array.length;
-        }
-        return result;
-    }
 
-    private byte[] intToByteArray(int value, int size) {
-        if (size < 1 || size > 4) {
-            throw new IllegalArgumentException("Size must be between 1 and 4 bytes for an int.");
-        }
-        ByteBuffer buffer = ByteBuffer.allocate(4);
-        buffer.putInt(value);
-
-        byte[] fullArray = buffer.array();
-        byte[] result = new byte[size];
-
-        System.arraycopy(fullArray, 4 - size, result, 0, size);
-
-        return result;
+        return baos.toByteArray();
     }
 }

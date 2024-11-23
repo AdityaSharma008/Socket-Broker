@@ -19,11 +19,6 @@ public class ResponseHeaders {
         public ResponseHeaderV0(int correlationID) {
             super(correlationID);
         }
-
-        @Override
-        public byte[] toBytes() {
-            return ByteUtils.intToByteArray(this.correlationID, 4);
-        }
     }
 
     public static class ResponseHeaderV1 extends ResponseHeaders {

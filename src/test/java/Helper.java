@@ -9,8 +9,8 @@ public class Helper {
     private final Map<Integer, APIVersions> apiVersionsMap;
     public Helper(){
         apiVersionsMap = new LinkedHashMap<>();
-        apiVersionsMap.put(1, new APIVersions(1, 0, 16));
-        apiVersionsMap.put(18, new APIVersions(18, 0, 4));
+        apiVersionsMap.put(1, new APIVersions((short)1, (short)0, (short)16));
+        apiVersionsMap.put(18, new APIVersions((short)18, (short)0, (short)4));
     }
 
     // Helper method to create a mock client message

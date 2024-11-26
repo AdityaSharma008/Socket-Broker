@@ -7,11 +7,11 @@ import java.io.IOException;
 import java.net.Socket;
 
 public class Request {
-    private final int apiKey;
-    private final int apiVersion;
+    private final short apiKey;
+    private final short apiVersion;
     private final int correlationID;
 
-    Request(int apiKey, int apiVersion, int correlationID) {
+    Request(short apiKey, short apiVersion, int correlationID) {
         this.apiKey = apiKey;
         this.apiVersion = apiVersion;
         this.correlationID = correlationID;
@@ -23,8 +23,8 @@ public class Request {
 
             byte[] inputBytes = readClientMessage(in);
 
-            int apiKey = ByteUtils.byteToInt(inputBytes, 0, 2);
-            int apiVersion = ByteUtils.byteToInt(inputBytes, 2, 2);  // Assuming apiVersion is at index 2
+            short apiKey = (short)ByteUtils.byteToInt(inputBytes, 0, 2);
+            short apiVersion = (short)ByteUtils.byteToInt(inputBytes, 2, 2);  // Assuming apiVersion is at index 2
             int correlationID = ByteUtils.byteToInt(inputBytes, 4, 4);     // Assuming correlationId is at index 4
 
             return new Request(apiKey, apiVersion, correlationID);
@@ -32,7 +32,7 @@ public class Request {
             System.err.println("Error in communication with client: " + e.getMessage());
             e.printStackTrace();
 
-            return new Request(0, 0, 0);
+            return null;
         }
     }
 
@@ -47,11 +47,11 @@ public class Request {
         return inputBytes;
     }
 
-    public int getApiKey() {
+    public short getApiKey() {
         return apiKey;
     }
 
-    public int getApiVersion() {
+    public short getApiVersion() {
         return apiVersion;
     }
 

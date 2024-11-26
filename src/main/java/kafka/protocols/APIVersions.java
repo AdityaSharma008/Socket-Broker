@@ -1,11 +1,11 @@
 package kafka.protocols;
 
 public class APIVersions {
-    private final int apiKey;
-    private final int minVersion;
-    private final int maxVersion;
+    private final short apiKey;
+    private final short minVersion;
+    private final short maxVersion;
 
-    public APIVersions(int apiKey, int minVersion, int maxVersion) {
+    public APIVersions(short apiKey, short minVersion, short maxVersion) {
         this.apiKey = apiKey;
         this.minVersion = minVersion;
         this.maxVersion = maxVersion;
@@ -15,11 +15,11 @@ public class APIVersions {
         return apiKey;
     }
 
-    public int getMinVersion() {
+    public short getMinVersion() {
         return minVersion;
     }
 
-    public int getMaxVersion() {
+    public short getMaxVersion() {
         return maxVersion;
     }
 }

@@ -1,8 +1,8 @@
 import java.io.*;
 import java.net.*;
-import java.util.Arrays;
 import java.util.Map;
 
+import kafka.Main;
 import kafka.core.Broker;
 import kafka.protocols.APIVersions;
 import kafka.utils.ByteUtils;
@@ -17,6 +17,7 @@ import static org.mockito.Mockito.*;
 public class APIVersionsResponseTest {
     ServerSocket mockServerSocket;
     Socket mockSocket;
+    Broker broker;
     Broker.ClientHandler clientHandler;
     ByteArrayOutputStream outputStream;
     Helper helper = new Helper();
@@ -30,7 +31,8 @@ public class APIVersionsResponseTest {
         // Mock ServerSocket and Socket objects
         mockServerSocket = Mockito.mock(ServerSocket.class);
         mockSocket = Mockito.mock(Socket.class);
-        clientHandler = new Broker.ClientHandler(mockSocket);
+        broker = new Broker(new Main().getApiVersionsMap());
+        clientHandler = broker.new ClientHandler(mockSocket);
         outputStream = new ByteArrayOutputStream();
         when(mockSocket.getOutputStream()).thenReturn(outputStream);
 
@@ -85,9 +87,6 @@ public class APIVersionsResponseTest {
         byte[] expectedResponse = createMessage(correlationID, 35);
         byte[] actualResponse = outputStream.toByteArray();
 
-        System.out.println(Arrays.toString(expectedResponse));
-        System.out.println(Arrays.toString(actualResponse));
-
         assertArrayEquals(expectedResponse, actualResponse);
     }
 
@@ -105,7 +104,7 @@ public class APIVersionsResponseTest {
             when(mockSocket.getInputStream()).thenReturn(inputStream);
             when(mockSocket.getOutputStream()).thenReturn(outputStream);
 
-            Broker.ClientHandler clientHandler = new Broker.ClientHandler(mockSocket);
+            Broker.ClientHandler clientHandler = broker.new ClientHandler(mockSocket);
             clientHandler.run();
 
             byte[] expectedResponse = createMessage(correlationID, errorCode);

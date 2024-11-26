@@ -1,5 +1,6 @@
 package kafka.core;
 
+import kafka.protocols.APIVersions;
 import kafka.protocols.Message;
 import kafka.requestHandlers.APIVersionsV4RequestHandler;
 import kafka.protocols.Request;
@@ -8,17 +9,19 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Broker {
-    private static final int PORT = 9092;
     private static final int THREAD_POOL_SIZE = 10;
     private static final ExecutorService threadPool = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
+    Map<Short, APIVersions> apiVersionsMap;
 
-    public static void main(String[] args) {
-        new Broker().startServer(PORT);
+    public Broker(Map<Short, APIVersions> apiVersionsMap){
+        this.apiVersionsMap = apiVersionsMap;
     }
+
 
     public void startServer(int port) {
         try (ServerSocket serverSocket = createServerSocket(port)) {
@@ -55,7 +58,7 @@ public class Broker {
     }
 
     // Handles a client request by reading the message, processing it, and responding
-    public static class ClientHandler implements Runnable {
+    public class ClientHandler implements Runnable {
         private final Socket clientSocket;
 
         public ClientHandler(Socket socket) {
@@ -71,6 +74,7 @@ public class Broker {
 
                 Request request = Request.readFrom(clientSocket);
 
+                assert request != null;
                 APIVersionsV4RequestHandler message = new APIVersionsV4RequestHandler(request);
                 Message msg = message.handle();
 

@@ -1,3 +1,4 @@
+import kafka.Main;
 import kafka.core.Broker;
 import kafka.protocols.ResponseHeaders;
 import kafka.utils.ByteUtils;
@@ -19,6 +20,7 @@ import static org.mockito.Mockito.when;
 public class FetchResponseTest {
     ServerSocket mockServerSocket;
     Socket mockSocket;
+    Broker broker;
     Broker.ClientHandler clientHandler;
     ByteArrayOutputStream outputStream;
     Helper helper = new Helper();
@@ -35,7 +37,8 @@ public class FetchResponseTest {
         // Mock ServerSocket and Socket objects
         mockServerSocket = Mockito.mock(ServerSocket.class);
         mockSocket = Mockito.mock(Socket.class);
-        clientHandler = new Broker.ClientHandler(mockSocket);
+        broker = new Broker(new Main().getApiVersionsMap());
+        clientHandler = broker.new ClientHandler(mockSocket);
         outputStream = new ByteArrayOutputStream();
         when(mockSocket.getOutputStream()).thenReturn(outputStream);
 
@@ -92,7 +95,7 @@ public class FetchResponseTest {
             when(mockSocket.getInputStream()).thenReturn(inputStream);
             when(mockSocket.getOutputStream()).thenReturn(outputStream);
 
-            Broker.ClientHandler clientHandler = new Broker.ClientHandler(mockSocket);
+            Broker.ClientHandler clientHandler = broker.new ClientHandler(mockSocket);
             clientHandler.run();
 
             byte[] expectedResponse = createMessage(correlationID, errorCode, apiKey);
